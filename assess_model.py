@@ -1,7 +1,6 @@
 import numpy as np
 import pandas as pd
 
-# import rates
 import fairness_measures as fm
 
 
@@ -24,9 +23,24 @@ def assess(A, Y, R, th_g1, th_g2, eps, print_res=False):
     sep = fm.separation(pred_1, pred_2, label_1, label_2, eps, print_res)
     suf = fm.sufficiency(pred_1, pred_2, label_1, label_2, eps, print_res)
 
+    """
+    To ideally satisfy Independence, Separation and Sufficiency, 
+    the ratios for pr, fpr, fnr, ppv, npv should be equal to 1.
+     Thus, (ratio_x - 1) represents the error, distance to the ideal value,
+     it should be as close to 0, as possible. 
+    Here I tried to create a non-convex loss function: 
+    a MSE of ratios. 
+    It didn't work out well, partly because of extreme values of 
+    threshold values. 
+    For high and low values for thresholds, the predictor 
+    classifies all datapoints into 1 category.
+    This makes ppv and other measures 1 or 0 for both groups, ratios 
+    are equal to 1, the error is equal to 0. The system is fair formally, 
+    but such predictor has 0 information gain.
+    """
     # ratios = [ind['ratio_pr'] - 1,
-    #           sep['ratio_tpr'] - 1,
     #           sep['ratio_fpr'] - 1,
+    #           sep['ratio_fnr'] - 1,
     #           suf['ratio_ppv'] - 1,
     #           suf['ratio_npv'] - 1]
     # non_nan_ratios = [x for x in ratios if x != np.nan]
@@ -70,26 +84,3 @@ def assess_models(A, Y, R, th_values_g1, th_values_g2, eps):
             #     if result_s['suf_fair']:
             #         print('Sufficiency is satisfied')
     return df_result
-
-
-data = np.load('df.npy')
-df = pd.DataFrame(data, columns=['A', 'Y', 'r1', 'r2'])
-
-eps = 0.3
-th_values_bl = np.arange(21) * 0.1
-th_values_wh = np.arange(21) * 0.1
-
-# Studying best models for r1
-result_r1 = assess_models(df['A'], df['Y'], df['r1'],
-                          th_values_bl, th_values_wh, eps)
-result_r1_sorted = result_r1.sort_values('tests_passed', ascending=False)
-
-# Studying best models for r2
-result_r2 = assess_models(df['A'], df['Y'], df['r2'],
-                          th_values_bl, th_values_wh, eps)
-result_r2_sorted = result_r2.sort_values('tests_passed', ascending=False)
-
-# Best model for r2 detailed
-res_best_r2 = assess(df['A'], df['Y'], df['r2'], 0.6, 0.4, eps)
-
-
